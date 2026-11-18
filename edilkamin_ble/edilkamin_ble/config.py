@@ -61,6 +61,8 @@ class Config:
 
     # Polling settings
     poll_interval: int = 30  # seconds
+    # Release the BLE link after each poll (the stove accepts one connection)
+    idle_disconnect: bool = False
 
     # Logging
     log_level: str = "info"
@@ -98,6 +100,7 @@ class Config:
             device_name=data.get("device_name", "Edilkamin Stove"),
             device_id=data.get("device_id"),
             poll_interval=data.get("poll_interval", 30),
+            idle_disconnect=bool(data.get("idle_disconnect", False)),
             log_level=data.get("log_level", "info"),
         )
 

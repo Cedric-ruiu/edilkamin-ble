@@ -10,6 +10,12 @@ configuration:
     description: >-
       Seconds between status reads from the stove (5-300). Commands trigger an
       extra read right away.
+  idle_disconnect:
+    name: Disconnect between polls
+    description: >-
+      Release the stove's single Bluetooth connection after each status read,
+      so the remote control and the Edilkamin app can use it in between.
+      Commands reconnect on demand. Use with a poll interval of 120 s.
   mqtt_host:
     name: MQTT broker host
     description: >-

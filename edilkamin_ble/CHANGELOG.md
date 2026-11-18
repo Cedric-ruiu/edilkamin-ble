@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.2.1 (fork Cedric-ruiu)
+
+### Added
+
+- `idle_disconnect` option: release the stove's single Bluetooth connection
+  after each status read, so the remote control can send the room
+  temperature in between. Commands reconnect on demand (3 attempts, 5 s
+  apart). Recommended with `poll_interval: 120`. Off by default.
+
 ## 1.3.2
 
 Security and robustness release, from a security review (secret scan,

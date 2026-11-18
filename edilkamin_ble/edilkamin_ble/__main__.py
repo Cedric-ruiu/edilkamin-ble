@@ -391,6 +391,13 @@ class EdilkaminAddon:
                 await self._set_bt_status(BT_STATUS_CONNECTED)
                 consecutive_failures = 0
 
+                if self._config.idle_disconnect and not self._refresh_event.is_set():
+                    # Free the stove's single BLE connection for the remote
+                    # control (it sends the room temperature) until the next
+                    # poll. Bluetooth Status stays "Connected": the link is
+                    # healthy, only idle. A command reconnects on demand.
+                    await self._ble_client.disconnect()
+
                 await self._wait_next_poll()
 
             except asyncio.CancelledError:

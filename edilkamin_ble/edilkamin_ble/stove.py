@@ -140,6 +140,33 @@ class EdilkaminStove:
         """Disconnect from the stove."""
         await self._ble.disconnect()
 
+    async def _ensure_connected(self) -> None:
+        """Reconnect first if the link was released between polls.
+
+        With idle_disconnect, a command from Home Assistant usually arrives
+        while the add-on holds no connection. connect() is a no-op when
+        already connected and serialised by the client's connection lock.
+        """
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            if self._ble.connected:
+                return
+            try:
+                await self._ble.connect()
+                return
+            except Exception as e:
+                # The remote control may hold the stove's single connection
+                # for a few seconds: wait and retry before giving up.
+                if attempt == attempts:
+                    raise
+                _LOGGER.info(
+                    "Stove busy or unreachable (%s), retrying in 5 s (%d/%d)",
+                    e,
+                    attempt,
+                    attempts,
+                )
+                await asyncio.sleep(5)
+
     async def _send_read(self, register: bytes) -> tuple[int, int]:
         """Send a read command and return status bytes.
 
@@ -153,6 +180,7 @@ class EdilkaminStove:
             ProtocolError: If the response does not answer this request.
         """
         command = self._protocol.build_read_command(register)
+        await self._ensure_connected()
         response_data = await self._ble.send_command(command)
         response = self._protocol.parse_response(response_data)
         self._protocol.validate_read_response(response, register)
@@ -170,6 +198,7 @@ class EdilkaminStove:
             True if successful.
         """
         command = self._protocol.build_write_command(register, value_hi, value_lo)
+        await self._ensure_connected()
         await self._ble.send_command(command)
         return True
 
