@@ -82,6 +82,10 @@ REG_READ_CHRONO_POWER_DATA = bytes([1, 3, 4, 248, 0, 42])
 
 # Standby registers
 REG_READ_STANDBY_STATUS = bytes([1, 3, 5, 44, 0, 1])
+# Probes (fork): candidate registers from edilkamin.js, read only to be logged
+# and published as attributes until their meaning is confirmed on a real stove.
+REG_READ_STANDBY_STATUS_ALT = bytes([1, 3, 4, 68, 0, 1])  # 0x0444 in edilkamin.js
+REG_READ_PELLET_WARNING = bytes([1, 3, 4, 213, 0, 1])  # 0x04D5 "pelletAlarm" in edilkamin.js
 REG_READ_STANDBY_START_TIME = bytes([1, 3, 2, 252, 0, 1])
 REG_READ_STANDBY_TIMER = bytes([1, 3, 5, 45, 0, 1])
 

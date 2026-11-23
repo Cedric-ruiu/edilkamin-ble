@@ -130,6 +130,13 @@ class MQTTDiscovery:
             "pellet_empty", "Pellet Supply",
             device_class="problem", icon="mdi:grain",
         ))
+        # On/off order held by the stove: on while it waits in standby.
+        # Attributes carry the raw values of the registers under study.
+        configs.append(self._binary_sensor_config(
+            "power_command", "Power Command",
+            icon="mdi:power-settings",
+            json_attributes_topic=f"{self._device_topic}/power_command/attributes",
+        ))
 
         # Quick on/off for dashboards, voice assistants and automations.
         configs.append(self._switch_config(
@@ -382,6 +389,8 @@ class MQTTDiscovery:
             "running": f"{self._device_topic}/running",
             "alarm": f"{self._device_topic}/alarm",
             "pellet_empty": f"{self._device_topic}/pellet_empty",
+            "power_command": f"{self._device_topic}/power_command",
+            "power_command_attributes": f"{self._device_topic}/power_command/attributes",
             "power": f"{self._device_topic}/power",
             "relax": f"{self._device_topic}/relax",
             "chrono": f"{self._device_topic}/chrono",

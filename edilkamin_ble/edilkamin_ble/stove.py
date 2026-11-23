@@ -13,13 +13,17 @@ from .const import (
     POWER_LEVELS,
     REG_READ_ALARM,
     REG_READ_AUTOMATIC,
+    REG_READ_FIREPLACE_COMMANDS,
     REG_READ_FIREPLACE_MAIN_STATUS,
     REG_READ_MAIN_ENV_TEMP,
     REG_READ_ON_OFF_CHRONO,
+    REG_READ_PELLET_REMAINING,
     REG_READ_PELLET_SENSOR,
+    REG_READ_PELLET_WARNING,
     REG_READ_POWER,
     REG_READ_RELAX,
     REG_READ_STANDBY_STATUS,
+    REG_READ_STANDBY_STATUS_ALT,
     REG_READ_TEMPERATURE,
     REG_READ_THERMOCOUPLE_TEMP,
     REG_SET_CHANGE_AUTO_SWITCH,
@@ -100,6 +104,14 @@ class StoveState:
     alarm_code: int = 0
     pellet_level: str = "ok"  # "ok" or "empty"
 
+    # On/off order the stove holds (register 0x031C, written by set_power).
+    # Unlike power_on, which follows the phase, it stays on while the stove
+    # waits in standby. None until read successfully.
+    power_command: Optional[bool] = None
+
+    # Raw values of candidate registers under investigation, by name.
+    probes: dict[str, list[int]] = field(default_factory=dict)
+
     # Raw status bytes for debugging
     status_bytes: tuple[int, int] = field(default_factory=lambda: (0, 0))
 
@@ -166,6 +178,27 @@ class EdilkaminStove:
                     attempts,
                 )
                 await asyncio.sleep(5)
+
+    async def _probe(self, name: str, register: bytes) -> Optional[tuple[int, int]]:
+        """Read a register whose meaning is not confirmed yet.
+
+        A protocol error (register refused or unexpected answer) is logged
+        and ignored so it cannot break the status poll; link errors still
+        propagate. Every change of value is logged at INFO, to match it
+        later with what the stove was doing.
+        """
+        try:
+            value = await self._send_read(register)
+        except ProtocolError as e:
+            if self._state.probes.get(name) != []:
+                _LOGGER.info("Register probe %s unreadable: %s", name, e)
+            self._state.probes[name] = []
+            return None
+        previous = self._state.probes.get(name)
+        if previous != list(value):
+            _LOGGER.info("Register probe %s: %s -> %s", name, previous, list(value))
+        self._state.probes[name] = list(value)
+        return value
 
     async def _send_read(self, register: bytes) -> tuple[int, int]:
         """Send a read command and return status bytes.
@@ -287,6 +320,17 @@ class EdilkaminStove:
             if pellet_bytes[1] not in PELLET_LEVEL:
                 _LOGGER.debug("Unknown pellet sensor value: %s", pellet_bytes[1])
             self._state.pellet_level = PELLET_LEVEL.get(pellet_bytes[1], "ok")
+            self._state.probes["pellet_sensor_5_46"] = list(pellet_bytes)
+
+            # On/off order, readable back from the register set_power writes.
+            command = await self._probe("power_command_0x031C", REG_READ_FIREPLACE_COMMANDS)
+            self._state.power_command = None if command is None else command[1] == 1
+
+            # Candidates for the pellet reserve warning and the standby setting.
+            await self._probe("pellet_warning_0x04D5", REG_READ_PELLET_WARNING)
+            await self._probe("pellet_remaining_2_236", REG_READ_PELLET_REMAINING)
+            await self._probe("standby_0x0444", REG_READ_STANDBY_STATUS_ALT)
+            self._state.probes["standby_5_44"] = list(standby_bytes)
 
             _LOGGER.debug("Status poll complete: %s", self._state)
 

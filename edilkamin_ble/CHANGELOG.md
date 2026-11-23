@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.2.2 (fork Cedric-ruiu)
+
+### Added
+
+- "Power Command" binary sensor: the on/off order the stove holds
+  (register 0x031C). It stays on while the stove waits in standby, which the
+  phase alone cannot tell from "switched off". The climate action is now
+  `idle` in that case instead of `off`.
+- Register probes, published as attributes of that sensor and logged when
+  they change: candidates for the pellet reserve warning (0x04D5, 2/236) and
+  the standby setting (0x0444), next to the values already read (5/46, 5/44).
+  To be matched against the stove's real state before relying on them.
+
 ## 1.3.2.1 (fork Cedric-ruiu)
 
 ### Added

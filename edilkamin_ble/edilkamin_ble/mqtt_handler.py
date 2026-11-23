@@ -402,6 +402,9 @@ class MQTTHandler:
             ),
         }))
         self._publish("pellet_empty", "ON" if state.pellet_level == "empty" else "OFF")
+        if state.power_command is not None:
+            self._publish("power_command", "ON" if state.power_command else "OFF")
+        self._publish("power_command_attributes", json.dumps(state.probes))
 
         # Switches
         self._publish("power", "ON" if state.power_on else "OFF")
@@ -430,7 +433,9 @@ class MQTTHandler:
     def _get_action(self, state: StoveState) -> str:
         """Get climate action from stove state."""
         if not state.power_on:
-            return "off"
+            # Ordered on but not burning: waiting in standby (or cooling
+            # down before it), as opposed to switched off.
+            return "idle" if state.power_command else "off"
 
         if state.phase == StovePhase.RUNNING:
             return "heating"
