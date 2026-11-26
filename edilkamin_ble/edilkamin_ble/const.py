@@ -86,6 +86,10 @@ REG_READ_STANDBY_STATUS = bytes([1, 3, 5, 44, 0, 1])
 # and published as attributes until their meaning is confirmed on a real stove.
 REG_READ_STANDBY_STATUS_ALT = bytes([1, 3, 4, 68, 0, 1])  # 0x0444 in edilkamin.js
 REG_READ_PELLET_WARNING = bytes([1, 3, 4, 213, 0, 1])  # 0x04D5 "pelletAlarm" in edilkamin.js
+# The two words of REG_READ_WARNING_FLAGS, read one at a time; the cloud API
+# exposes the pellet reserve as a status flag.
+REG_READ_WARNING_FLAGS_1 = bytes([1, 3, 2, 244, 0, 1])
+REG_READ_WARNING_FLAGS_2 = bytes([1, 3, 2, 245, 0, 1])
 REG_READ_STANDBY_START_TIME = bytes([1, 3, 2, 252, 0, 1])
 REG_READ_STANDBY_TIMER = bytes([1, 3, 5, 45, 0, 1])
 

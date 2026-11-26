@@ -15,6 +15,7 @@ from .const import (
     REG_READ_AUTOMATIC,
     REG_READ_FIREPLACE_COMMANDS,
     REG_READ_FIREPLACE_MAIN_STATUS,
+    REG_READ_FIREPLACE_STOVE_STATUS,
     REG_READ_MAIN_ENV_TEMP,
     REG_READ_ON_OFF_CHRONO,
     REG_READ_PELLET_REMAINING,
@@ -26,6 +27,8 @@ from .const import (
     REG_READ_STANDBY_STATUS_ALT,
     REG_READ_TEMPERATURE,
     REG_READ_THERMOCOUPLE_TEMP,
+    REG_READ_WARNING_FLAGS_1,
+    REG_READ_WARNING_FLAGS_2,
     REG_SET_CHANGE_AUTO_SWITCH,
     REG_SET_FAN_1,
     REG_SET_ON_OFF,
@@ -301,7 +304,11 @@ class EdilkaminStove:
 
             # Read standby mode
             standby_bytes = await self._send_read(REG_READ_STANDBY_STATUS)
-            self._state.standby_mode = standby_bytes[1] == 1
+            # The setting is in the HIGH byte, as for the alarm code: a stove
+            # with standby enabled reads (1, 255). Fall back to the low byte.
+            self._state.standby_mode = (
+                standby_bytes[0] == 1 if standby_bytes[0] in (0, 1) else standby_bytes[1] == 1
+            )
 
             # Read alarm status
             alarm_bytes = await self._send_read(REG_READ_ALARM)
@@ -330,6 +337,9 @@ class EdilkaminStove:
             await self._probe("pellet_warning_0x04D5", REG_READ_PELLET_WARNING)
             await self._probe("pellet_remaining_2_236", REG_READ_PELLET_REMAINING)
             await self._probe("standby_0x0444", REG_READ_STANDBY_STATUS_ALT)
+            await self._probe("warning_flags_2_244", REG_READ_WARNING_FLAGS_1)
+            await self._probe("warning_flags_2_245", REG_READ_WARNING_FLAGS_2)
+            await self._probe("stove_status_2_229", REG_READ_FIREPLACE_STOVE_STATUS)
             self._state.probes["standby_5_44"] = list(standby_bytes)
 
             _LOGGER.debug("Status poll complete: %s", self._state)

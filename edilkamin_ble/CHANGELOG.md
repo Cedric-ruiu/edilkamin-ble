@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.2.3 (fork Cedric-ruiu)
+
+### Fixed
+
+- Standby Mode read from the high byte of its register (a stove with standby
+  enabled reads (1, 255)); it showed "off" while standby was on.
+
+### Added
+
+- More register probes for the pellet reserve warning: both words of the
+  warning flags (2/244, 2/245) and the stove status register (2/229).
+
 ## 1.3.2.2 (fork Cedric-ruiu)
 
 ### Added
