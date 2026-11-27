@@ -82,14 +82,12 @@ REG_READ_CHRONO_POWER_DATA = bytes([1, 3, 4, 248, 0, 42])
 
 # Standby registers
 REG_READ_STANDBY_STATUS = bytes([1, 3, 5, 44, 0, 1])
-# Probes (fork): candidate registers from edilkamin.js, read only to be logged
-# and published as attributes until their meaning is confirmed on a real stove.
-REG_READ_STANDBY_STATUS_ALT = bytes([1, 3, 4, 68, 0, 1])  # 0x0444 in edilkamin.js
-REG_READ_PELLET_WARNING = bytes([1, 3, 4, 213, 0, 1])  # 0x04D5 "pelletAlarm" in edilkamin.js
-# The two words of REG_READ_WARNING_FLAGS, read one at a time; the cloud API
-# exposes the pellet reserve as a status flag.
+# First word of REG_READ_WARNING_FLAGS (fork). Bit 2 of its low byte is the
+# pellet reserve, confirmed on an Evia 2: set when the level sensor trips,
+# while REG_READ_PELLET_REMAINING counts the seconds left (900 -> 0) before
+# the stove shuts itself down.
 REG_READ_WARNING_FLAGS_1 = bytes([1, 3, 2, 244, 0, 1])
-REG_READ_WARNING_FLAGS_2 = bytes([1, 3, 2, 245, 0, 1])
+PELLET_RESERVE_FLAG = 0x04
 REG_READ_STANDBY_START_TIME = bytes([1, 3, 2, 252, 0, 1])
 REG_READ_STANDBY_TIMER = bytes([1, 3, 5, 45, 0, 1])
 

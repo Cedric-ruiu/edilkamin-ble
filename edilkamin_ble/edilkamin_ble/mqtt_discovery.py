@@ -129,6 +129,8 @@ class MQTTDiscovery:
         configs.append(self._binary_sensor_config(
             "pellet_empty", "Pellet Supply",
             device_class="problem", icon="mdi:grain",
+            # Minutes left before the stove stops on reserve.
+            json_attributes_topic=f"{self._device_topic}/pellet_empty/attributes",
         ))
         # On/off order held by the stove: on while it waits in standby.
         # Attributes carry the raw values of the registers under study.
@@ -389,6 +391,7 @@ class MQTTDiscovery:
             "running": f"{self._device_topic}/running",
             "alarm": f"{self._device_topic}/alarm",
             "pellet_empty": f"{self._device_topic}/pellet_empty",
+            "pellet_empty_attributes": f"{self._device_topic}/pellet_empty/attributes",
             "power_command": f"{self._device_topic}/power_command",
             "power_command_attributes": f"{self._device_topic}/power_command/attributes",
             "power": f"{self._device_topic}/power",

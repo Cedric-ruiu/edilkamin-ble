@@ -9,26 +9,21 @@ from typing import Optional
 from .ble_client import BLECommandError, BLEConnectionError, EdilkaminBLEClient
 from .const import (
     FAN_MODES,
-    PELLET_LEVEL,
+    PELLET_RESERVE_FLAG,
     POWER_LEVELS,
     REG_READ_ALARM,
     REG_READ_AUTOMATIC,
     REG_READ_FIREPLACE_COMMANDS,
     REG_READ_FIREPLACE_MAIN_STATUS,
-    REG_READ_FIREPLACE_STOVE_STATUS,
     REG_READ_MAIN_ENV_TEMP,
     REG_READ_ON_OFF_CHRONO,
     REG_READ_PELLET_REMAINING,
-    REG_READ_PELLET_SENSOR,
-    REG_READ_PELLET_WARNING,
     REG_READ_POWER,
     REG_READ_RELAX,
     REG_READ_STANDBY_STATUS,
-    REG_READ_STANDBY_STATUS_ALT,
     REG_READ_TEMPERATURE,
     REG_READ_THERMOCOUPLE_TEMP,
     REG_READ_WARNING_FLAGS_1,
-    REG_READ_WARNING_FLAGS_2,
     REG_SET_CHANGE_AUTO_SWITCH,
     REG_SET_FAN_1,
     REG_SET_ON_OFF,
@@ -105,14 +100,16 @@ class StoveState:
     # Status
     alarm: bool = False
     alarm_code: int = 0
-    pellet_level: str = "ok"  # "ok" or "empty"
+    pellet_level: str = "ok"  # "ok" or "empty" (= reserve reached)
+    # Seconds left before the stove stops on reserve; None outside reserve.
+    pellet_reserve_seconds: Optional[int] = None
 
     # On/off order the stove holds (register 0x031C, written by set_power).
     # Unlike power_on, which follows the phase, it stays on while the stove
     # waits in standby. None until read successfully.
     power_command: Optional[bool] = None
 
-    # Raw values of candidate registers under investigation, by name.
+    # Raw values of registers kept for diagnosis, by name.
     probes: dict[str, list[int]] = field(default_factory=dict)
 
     # Raw status bytes for debugging
@@ -322,25 +319,22 @@ class EdilkaminStove:
             self._state.alarm = code != 0
             self._state.alarm_code = code
 
-            # Read pellet level
-            pellet_bytes = await self._send_read(REG_READ_PELLET_SENSOR)
-            if pellet_bytes[1] not in PELLET_LEVEL:
-                _LOGGER.debug("Unknown pellet sensor value: %s", pellet_bytes[1])
-            self._state.pellet_level = PELLET_LEVEL.get(pellet_bytes[1], "ok")
-            self._state.probes["pellet_sensor_5_46"] = list(pellet_bytes)
+            # Pellet reserve: a warning flag, then a 900 s countdown before
+            # the stove shuts down by itself (no alarm is raised).
+            flags = await self._probe("warning_flags_2_244", REG_READ_WARNING_FLAGS_1)
+            reserve = flags is not None and bool(flags[1] & PELLET_RESERVE_FLAG)
+            if reserve and self._state.pellet_level != "empty":
+                _LOGGER.warning("Pellet reserve reached")
+            self._state.pellet_level = "empty" if reserve else "ok"
+            remaining = await self._probe("pellet_remaining_2_236", REG_READ_PELLET_REMAINING)
+            self._state.pellet_reserve_seconds = (
+                (remaining[0] << 8) | remaining[1] if reserve and remaining else None
+            )
 
             # On/off order, readable back from the register set_power writes.
             command = await self._probe("power_command_0x031C", REG_READ_FIREPLACE_COMMANDS)
             self._state.power_command = None if command is None else command[1] == 1
 
-            # Candidates for the pellet reserve warning and the standby setting.
-            await self._probe("pellet_warning_0x04D5", REG_READ_PELLET_WARNING)
-            await self._probe("pellet_remaining_2_236", REG_READ_PELLET_REMAINING)
-            await self._probe("standby_0x0444", REG_READ_STANDBY_STATUS_ALT)
-            await self._probe("warning_flags_2_244", REG_READ_WARNING_FLAGS_1)
-            await self._probe("warning_flags_2_245", REG_READ_WARNING_FLAGS_2)
-            await self._probe("stove_status_2_229", REG_READ_FIREPLACE_STOVE_STATUS)
-            self._state.probes["standby_5_44"] = list(standby_bytes)
 
             _LOGGER.debug("Status poll complete: %s", self._state)
 

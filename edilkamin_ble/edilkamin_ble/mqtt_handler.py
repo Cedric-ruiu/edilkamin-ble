@@ -402,6 +402,12 @@ class MQTTHandler:
             ),
         }))
         self._publish("pellet_empty", "ON" if state.pellet_level == "empty" else "OFF")
+        self._publish("pellet_empty_attributes", json.dumps({
+            "reserve_minutes_left": (
+                None if state.pellet_reserve_seconds is None
+                else round(state.pellet_reserve_seconds / 60)
+            ),
+        }))
         if state.power_command is not None:
             self._publish("power_command", "ON" if state.power_command else "OFF")
         self._publish("power_command_attributes", json.dumps(state.probes))

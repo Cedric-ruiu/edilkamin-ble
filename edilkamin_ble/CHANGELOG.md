@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.2.4 (fork Cedric-ruiu)
+
+### Fixed
+
+- Pellet Supply now reports the pellet reserve, read from bit 2 of the warning
+  flags (2/244), confirmed on an Evia 2. The previous register (5/46) never
+  changed. Its attribute `reserve_minutes_left` counts down the 15 minutes
+  the stove keeps burning before it stops on its own, without an alarm.
+
+### Removed
+
+- Register probes that turned out irrelevant (0x04D5, 0x0444, 2/245, 2/229,
+  5/46). Power Command keeps the raw warning flags and countdown as
+  attributes.
+
 ## 1.3.2.3 (fork Cedric-ruiu)
 
 ### Fixed
